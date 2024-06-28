@@ -11,6 +11,7 @@ import org.testng.annotations.Test;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class SkelbiuLTTests {
 
@@ -33,39 +34,52 @@ public class SkelbiuLTTests {
     @Test
     public void itemSearch() throws InterruptedException {
         WebElement searchForm = driver.findElement(By.id("searchKeyword"));
-        searchForm.sendKeys("stetoskopas");
+        searchForm.sendKeys("mazda mx 5");
         driver.findElement(By.id("searchButton")).click();
 
-        Thread.sleep(500);
-        List<WebElement> items = driver.findElements(By.className("js-remember-button"));
-        int itemCount = items.size();
-        System.out.println("Pasirinktų prekių skaičius: " + itemCount);
-
+        int totalCount = 0;
         double totalPrice = 0;
         int priceCount = 0;
+        int currentPage = 1;
 
-        for (WebElement item : items) {
-            WebElement priceElement = item.findElement(By.xpath(".//following-sibling::*[contains(@class, 'price')]"));
-            String priceText = priceElement.getText();
-            String[] priceParts = priceText.split("\\s+");
-            if (priceParts.length > 0 && !priceParts[0].trim().isEmpty()) {
-                double price = Double.parseDouble(priceParts[0].replace("€", "").replace(",", "."));
-                totalPrice += price;
-                priceCount++;
+        while (true) {
+            List<WebElement> items = driver.findElements(By.xpath("//a[starts-with(@href, '/skelbimai/')]//div[@class='content-block']"));         int itemCount = items.size();
+            totalCount += itemCount;
+            System.out.println("Puslapis: " + currentPage + "; Skelbimų puslapyje: " + itemCount);
 
-                double discount = 0;
-                if (priceParts.length > 1) {
-                    String discountText = priceParts[1];
-                    if (discountText.contains("%")) {
-                        discount = Double.parseDouble(discountText.replace("%", ""));
+            for (WebElement item : items) {
+                WebElement priceElement = item.findElement(By.xpath(".//following-sibling::*[contains(@class, 'price')]"));
+                String priceText = priceElement.getText();
+                String[] priceParts = priceText.split("\\s+");
+                if (priceParts.length > 0 &&!priceParts[0].trim().isEmpty()) {
+                    double price = Double.parseDouble(priceParts[0].replace("€", "").replace(",", "."));
+                    totalPrice += price;
+                    priceCount++;
+
+                    double discount = 0;
+                    if (priceParts.length > 1) {
+                        String discountText = priceParts[1];
+                        if (discountText.contains("%")) {
+                            discount = Double.parseDouble(discountText.replace("%", ""));
+                        }
                     }
                 }
             }
+            Thread.sleep(3000);
+            List<WebElement> nextPageLinks = driver.findElements(By.xpath("//a[@rel='next']"));
+            if (nextPageLinks.size() > 0) {
+                nextPageLinks.get(0).click();
+                currentPage++;
+            } else {
+                break;
+            }
         }
+
+        System.out.println("Iš viso skelbimų: " + totalCount);
         if (priceCount > 0) {
             double averagePrice = totalPrice / priceCount;
             System.out.println("Vidutinė prekės kaina: " + String.format("%.2f", averagePrice) + " €");
         }
     }
- }
+}
 
