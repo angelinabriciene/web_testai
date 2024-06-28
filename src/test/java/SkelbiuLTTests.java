@@ -39,34 +39,33 @@ public class SkelbiuLTTests {
         Thread.sleep(500);
         List<WebElement> items = driver.findElements(By.className("js-remember-button"));
         int itemCount = items.size();
-        System.out.println("Pasirinktų prekių skaičius lange: " + itemCount);
+        System.out.println("Pasirinktų prekių skaičius: " + itemCount);
 
         double totalPrice = 0;
         int priceCount = 0;
 
         for (WebElement item : items) {
-            List<WebElement> priceElements = item.findElements(By.className("price"));
-            if (!priceElements.isEmpty()) {
-                String priceText = priceElements.get(0).getText();
-                priceText = priceText.replace("€", "").trim();
-                double price = Double.parseDouble(priceText);
+            WebElement priceElement = item.findElement(By.xpath(".//following-sibling::*[contains(@class, 'price')]"));
+            String priceText = priceElement.getText();
+            String[] priceParts = priceText.split("\\s+");
+            if (priceParts.length > 0 && !priceParts[0].trim().isEmpty()) {
+                double price = Double.parseDouble(priceParts[0].replace("€", "").replace(",", "."));
                 totalPrice += price;
                 priceCount++;
+
+                double discount = 0;
+                if (priceParts.length > 1) {
+                    String discountText = priceParts[1];
+                    if (discountText.contains("%")) {
+                        discount = Double.parseDouble(discountText.replace("%", ""));
+                    }
+                }
             }
         }
-
         if (priceCount > 0) {
             double averagePrice = totalPrice / priceCount;
-            System.out.println("Vidutinė kaina: " + averagePrice + " €");
-        } else {
-            System.out.println("Kainų nerasta");
+            System.out.println("Vidutinė prekės kaina: " + String.format("%.2f", averagePrice) + " €");
         }
     }
+ }
 
-    @AfterClass
-    public void tearDown() {
-//        driver.quit();
-    }
-
-
-}
